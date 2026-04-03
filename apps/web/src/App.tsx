@@ -535,7 +535,7 @@ export default function App() {
       ) : null}
 
       <div className="mx-auto flex max-w-7xl flex-col gap-6">
-        <section className="panel panel-hero overflow-hidden shadow-panel">
+        <section className="panel panel-hero shadow-panel">
           <div className="grid gap-6 p-6 lg:grid-cols-[1.4fr_1fr] lg:p-8">
             <div className="space-y-5">
               <div className="inline-flex rounded-full border border-amber-300/40 bg-amber-400/15 px-3 py-1 text-xs font-semibold uppercase tracking-[0.3em] text-amber-100">
@@ -563,7 +563,7 @@ export default function App() {
               </div>
             </div>
 
-            <div className="panel panel-scan flex flex-col gap-4 p-5">
+            <div className="panel panel-scan status-sticky flex flex-col gap-4 p-5">
               <div className="chip-label">{ru.status.label}</div>
               <div className="font-display text-2xl">{room ? ru.status.roomStates[room.status] : ru.status.ready}</div>
               <div className="flex flex-wrap gap-3 text-sm text-zinc-200">
@@ -631,9 +631,9 @@ export default function App() {
             </div>
           </section>
         ) : (
-          <section className="grid gap-6 lg:grid-cols-[0.85fr_1.15fr]">
-            <aside className="space-y-6">
-              <div className="panel panel-muted p-6 shadow-panel">
+          <section className="lobby-grid grid gap-6 lg:grid-cols-[0.85fr_1.15fr]">
+            <aside className="lobby-column space-y-4">
+              <div className="panel panel-muted panel-compact shadow-panel">
                 <div className="flex items-start justify-between gap-4">
                   <div>
                     <div className="chip-label">{ru.room.label}</div>
@@ -644,7 +644,7 @@ export default function App() {
                   </button>
                 </div>
 
-                <div className="mt-5 panel panel-inset p-4">
+                <div className="mt-4 panel panel-inset p-4">
                   <div className="chip-label">{ru.room.inviteLabel}</div>
                   <input readOnly value={inviteLink} className="mt-3 w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-zinc-100 outline-none" />
                   <div className="mt-3 grid gap-3 sm:grid-cols-2">
@@ -657,7 +657,7 @@ export default function App() {
                   </div>
                 </div>
 
-                <div className="mt-6 space-y-3">
+                <div className="mt-4 space-y-3">
                   {room.players.map((player) => (
                     <PlayerChip
                       key={player.id}
@@ -670,7 +670,7 @@ export default function App() {
                 </div>
               </div>
 
-              <div className="panel panel-role p-6 shadow-panel">
+              <div className="panel panel-role panel-compact shadow-panel">
                 <div className="chip-label">{ru.role.label}</div>
                 <div className={`mt-3 font-display text-3xl font-semibold ${currentRole ? roleAccent[currentRole] : 'text-zinc-100'}`}>
                   {currentRole ? ru.role.names[currentRole] : ru.role.pending}
@@ -685,7 +685,7 @@ export default function App() {
               </div>
 
               {room.status === 'lobby' ? (
-                <div className="panel panel-muted p-6 shadow-panel">
+                <div className="panel panel-muted panel-compact shadow-panel">
                   <div className="font-display text-2xl">{ru.lobbySettings.title}</div>
                   <p className="mt-2 text-sm leading-6 text-zinc-200">{ru.lobbySettings.hint}</p>
                   <div className="mt-4 grid gap-4 sm:grid-cols-2">
