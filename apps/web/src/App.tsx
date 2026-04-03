@@ -13,7 +13,7 @@ import {
   startRoomGame,
   updateRoomSettings
 } from './lib/api';
-import { playClick, playError, playSuccess } from './lib/sfx';
+import { playClick, playError, playHold, playSuccess, playToggle, playZip } from './lib/sfx';
 import { ru } from './locales/ru';
 import { useRegisterSW } from 'virtual:pwa-register/react';
 
@@ -405,8 +405,19 @@ export default function App() {
       return;
     }
 
-    playClick();
-    vibrate(20);
+    if (action === 'cut-wire') {
+      playZip();
+      vibrate([10, 30, 10]);
+    } else if (action === 'tap-toggle') {
+      playToggle();
+      vibrate(15);
+    } else if (action === 'hold-button') {
+      playHold();
+      vibrate(25);
+    } else {
+      playClick();
+      vibrate(20);
+    }
     sendAction({
       roomId: session.roomId,
       playerId: session.playerId,

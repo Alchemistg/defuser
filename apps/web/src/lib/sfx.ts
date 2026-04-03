@@ -44,6 +44,19 @@ export const playClick = () => {
   playTone(520, 70, 'square', 0.08);
 };
 
+export const playZip = () => {
+  playTone(740, 80, 'sawtooth', 0.06);
+  setTimeout(() => playTone(420, 60, 'square', 0.04), 50);
+};
+
+export const playToggle = () => {
+  playTone(420, 90, 'triangle', 0.06);
+};
+
+export const playHold = () => {
+  playTone(300, 140, 'square', 0.05);
+};
+
 export const playError = () => {
   playTone(180, 220, 'sawtooth', 0.12);
 };
