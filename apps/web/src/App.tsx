@@ -13,6 +13,7 @@ import {
   startRoomGame,
   updateRoomSettings
 } from './lib/api';
+import { playClick, playError, playSuccess } from './lib/sfx';
 import { ru } from './locales/ru';
 import { useRegisterSW } from 'virtual:pwa-register/react';
 
@@ -31,6 +32,7 @@ interface SettingsDraft {
 }
 
 const sessionKey = 'defuser.session';
+const nameKey = 'defuser.name';
 
 const randomName = () => `${ru.defaults.randomNamePrefix}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
 
@@ -55,9 +57,10 @@ const persistSession = (session: Session | null) => {
 const resolveBootstrap = () => {
   const url = new URL(window.location.href);
   const stored = readStoredSession();
+  const storedName = localStorage.getItem(nameKey) ?? '';
 
   return {
-    defaultName: stored?.name ?? randomName(),
+    defaultName: stored?.name ?? storedName || randomName(),
     defaultCode: url.searchParams.get('roomCode')?.toUpperCase() ?? stored?.roomCode ?? '',
     session: stored
   };
@@ -67,6 +70,12 @@ const formatTimer = (secondsLeft: number) => {
   const minutes = Math.floor(secondsLeft / 60);
   const seconds = secondsLeft % 60;
   return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+};
+
+const vibrate = (pattern: number | number[]) => {
+  if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+    navigator.vibrate(pattern);
+  }
 };
 
 const roleAccent: Record<Role, string> = {
@@ -121,6 +130,8 @@ export default function App() {
   const [settingsDraft, setSettingsDraft] = useState<SettingsDraft | null>(null);
   const [strikeFlashTick, setStrikeFlashTick] = useState(0);
   const prevStrikesRef = useRef<number | null>(null);
+  const [reconnectPulse, setReconnectPulse] = useState(0);
+  const [finalSecondsLeft, setFinalSecondsLeft] = useState<number | null>(null);
   const {
     offlineReady: [offlineReady, setOfflineReady],
     needRefresh: [needRefresh, setNeedRefresh],
@@ -130,6 +141,12 @@ export default function App() {
   useEffect(() => {
     persistSession(session);
   }, [session]);
+
+  useEffect(() => {
+    if (name.trim()) {
+      localStorage.setItem(nameKey, name.trim());
+    }
+  }, [name]);
 
   const handleRoomState = useCallback((nextRoom: RoomState) => {
     setRoom(nextRoom);
@@ -152,6 +169,12 @@ export default function App() {
       resetSessionWithNotice(ru.messages.kickedSelf);
       return;
     }
+    if (nextMessage.includes('обезврежен') || nextMessage.includes('спасена')) {
+      playSuccess();
+    }
+    if (nextMessage.startsWith('Ошибка') || nextMessage.includes('Критическая')) {
+      playError();
+    }
     setMessage(nextMessage);
   }, []);
 
@@ -167,6 +190,21 @@ export default function App() {
   }, [room?.bomb, room?.status]);
 
   useEffect(() => {
+    if (!room?.bomb) {
+      setFinalSecondsLeft(null);
+      return;
+    }
+
+    if (room.status === 'active') {
+      setFinalSecondsLeft(null);
+      return;
+    }
+
+    const remaining = Math.max(0, Math.ceil((room.bomb.startedAt + room.bomb.durationMs - Date.now()) / 1000));
+    setFinalSecondsLeft(remaining);
+  }, [room?.bomb, room?.status]);
+
+  useEffect(() => {
     const strikes = room?.bomb?.strikes;
     if (strikes === undefined) {
       prevStrikesRef.current = null;
@@ -177,6 +215,8 @@ export default function App() {
     const prev = prevStrikesRef.current;
     if (prev !== null && strikes > prev) {
       setStrikeFlashTick((tick) => tick + 1);
+      playError();
+      vibrate(80);
     }
 
     prevStrikesRef.current = strikes;
@@ -220,9 +260,23 @@ export default function App() {
     };
   }, [session]);
 
+  useEffect(() => {
+    if (connected || !session) {
+      return;
+    }
+    const timer = window.setInterval(() => {
+      setReconnectPulse((value) => value + 1);
+    }, 1200);
+    return () => window.clearInterval(timer);
+  }, [connected, session]);
+
   const currentPlayer = room?.players.find((player) => player.id === session?.playerId);
   const currentRole = currentPlayer?.role;
   const secondsLeft = room?.bomb ? Math.max(0, Math.ceil((room.bomb.startedAt + room.bomb.durationMs - now) / 1000)) : null;
+  const timeSpentSeconds =
+    room?.bomb && finalSecondsLeft !== null
+      ? Math.max(0, Math.ceil(room.bomb.durationMs / 1000) - finalSecondsLeft)
+      : null;
   const isOwner = Boolean(session && room && room.ownerId === session.playerId);
   const canStart = Boolean(room && room.status === 'lobby' && room.players.length >= 2 && isOwner);
   const finishedBanner = room && (room.status === 'defused' || room.status === 'exploded') ? resultBanner[room.status] : null;
@@ -351,6 +405,8 @@ export default function App() {
       return;
     }
 
+    playClick();
+    vibrate(20);
     sendAction({
       roomId: session.roomId,
       playerId: session.playerId,
@@ -503,6 +559,11 @@ export default function App() {
                 <span className={`status-pill ${connected ? 'status-ok' : 'status-wait'}`}>
                   {ru.status.socketPrefix} {connected ? ru.status.socketConnected : ru.status.socketWaiting}
                 </span>
+                {!connected && session ? (
+                  <span key={reconnectPulse} className="status-pill status-reconnect">
+                    {ru.status.reconnecting}
+                  </span>
+                ) : null}
               </div>
               <div className="panel panel-inset p-4 text-sm leading-6 text-zinc-100">{message}</div>
               {error ? <div className="panel panel-alert p-4 text-sm text-rose-100">{error}</div> : null}
@@ -728,7 +789,9 @@ export default function App() {
                     <div className="mt-4 grid gap-3 sm:grid-cols-2">
                       <div className="panel panel-inset px-4 py-3">
                         <div className="chip-label">{ru.results.time}</div>
-                        <div className="font-display text-2xl">{secondsLeft !== null ? formatTimer(secondsLeft) : '--:--'}</div>
+                      <div className="font-display text-2xl">
+                        {timeSpentSeconds !== null ? formatTimer(timeSpentSeconds) : '--:--'}
+                      </div>
                       </div>
                       <div className="panel panel-inset px-4 py-3">
                         <div className="chip-label">{ru.results.strikes}</div>
