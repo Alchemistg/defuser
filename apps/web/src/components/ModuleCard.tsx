@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import type { BombModule, GameActionInput, ModuleType } from '@defuser/shared';
 import { ru } from '../locales/ru';
 
@@ -57,20 +58,35 @@ const parseButtonMeta = (lines: string[], label: string) => {
   return { color, text };
 };
 
-const ModuleVisual = ({ module }: { module: BombModule }) => {
+const ModuleVisual = ({
+  module,
+  lastAction,
+  hoverAction
+}: {
+  module: BombModule;
+  lastAction: { action: GameActionInput['action']; value?: string } | null;
+  hoverAction: { action: GameActionInput['action']; value?: string } | null;
+}) => {
   const type = module.type;
+  const actionValue = lastAction?.value;
+  const hoverValue = hoverAction?.value;
   if (module.type === 'symbols') {
     const symbols = parseSymbols(module.lines);
     return (
       <div className="grid grid-cols-4 gap-2 text-center text-xl text-amber-100">
         {symbols.length > 0
-          ? symbols.map((symbol) => (
-              <div key={symbol} className="rounded-xl border border-white/10 bg-black/40 py-2">
+          ? symbols.map((symbol, index) => (
+              <div
+                key={symbol}
+                className={`symbol-cell rounded-xl border border-white/10 bg-black/40 py-2 ${
+                  lastAction?.action === 'tap-toggle' && actionValue === String(index) ? 'symbol-hit' : ''
+                } ${hoverAction?.action === 'tap-toggle' && hoverValue === String(index) ? 'symbol-hover' : ''}`}
+              >
                 {symbol}
               </div>
             ))
           : new Array(4).fill(0).map((_, index) => (
-              <div key={index} className="rounded-xl border border-white/10 bg-black/40 py-2">
+              <div key={index} className="symbol-cell rounded-xl border border-white/10 bg-black/40 py-2">
                 ?
               </div>
             ))}
@@ -85,10 +101,12 @@ const ModuleVisual = ({ module }: { module: BombModule }) => {
         {new Array(5).fill(0).map((_, index) => {
           const lampIndex = index + 1;
           const isLit = lit.includes(lampIndex);
+          const isHit = lastAction?.action === 'tap-toggle' && actionValue === String(index);
+          const isHover = hoverAction?.action === 'tap-toggle' && hoverValue === String(index);
           return (
             <div
               key={lampIndex}
-              className={`h-6 w-6 rounded-full ${isLit ? 'lamp-glow' : 'bg-zinc-800'}`}
+              className={`lamp h-6 w-6 rounded-full ${isLit ? 'lamp-glow' : 'bg-zinc-800'} ${isHit ? 'lamp-hit' : ''} ${isHover ? 'lamp-hover' : ''}`}
             />
           );
         })}
@@ -100,9 +118,11 @@ const ModuleVisual = ({ module }: { module: BombModule }) => {
     const position = parseDiskPosition(module.lines);
     const rotationMap: Record<number, number> = { 12: 0, 3: 90, 6: 180, 9: 270 };
     const rotation = position ? rotationMap[position] ?? 0 : 0;
+    const hit = lastAction?.action === 'tap-toggle';
+    const hover = hoverAction?.action === 'tap-toggle';
 
     return (
-      <div className="relative flex h-20 w-20 items-center justify-center rounded-full border border-white/10 bg-black/40">
+      <div className={`disk-dial relative flex h-20 w-20 items-center justify-center rounded-full border border-white/10 bg-black/40 ${hit ? 'disk-hit' : ''} ${hover ? 'disk-hover' : ''}`}>
         <div className="h-2 w-2 rounded-full bg-amber-200" />
         <div
           className="absolute top-1 left-1/2 h-8 w-1 -translate-x-1/2 rounded-full bg-rose-300"
@@ -115,12 +135,21 @@ const ModuleVisual = ({ module }: { module: BombModule }) => {
   if (type === 'wires') {
     return (
       <div className="grid grid-cols-3 gap-2">
-        <div className="h-3 rounded-full bg-rose-400/80 shadow-[0_0_12px_rgba(248,113,113,0.6)]" />
-        <div className="h-3 rounded-full bg-sky-400/80 shadow-[0_0_12px_rgba(56,189,248,0.6)]" />
-        <div className="h-3 rounded-full bg-amber-300/80 shadow-[0_0_12px_rgba(252,211,77,0.6)]" />
-        <div className="h-3 rounded-full bg-zinc-200/80 shadow-[0_0_12px_rgba(228,228,231,0.6)]" />
-        <div className="h-3 rounded-full bg-emerald-300/80 shadow-[0_0_12px_rgba(110,231,183,0.6)]" />
-        <div className="h-3 rounded-full bg-zinc-800/90 shadow-[0_0_12px_rgba(24,24,27,0.6)]" />
+        {['rose', 'sky', 'amber', 'zinc', 'emerald', 'slate'].map((color, index) => {
+          const cut = lastAction?.action === 'cut-wire' && actionValue === String(index);
+          const hover = hoverAction?.action === 'cut-wire' && hoverValue === String(index);
+          const classes = {
+            rose: 'bg-rose-400/80 shadow-[0_0_12px_rgba(248,113,113,0.6)]',
+            sky: 'bg-sky-400/80 shadow-[0_0_12px_rgba(56,189,248,0.6)]',
+            amber: 'bg-amber-300/80 shadow-[0_0_12px_rgba(252,211,77,0.6)]',
+            zinc: 'bg-zinc-200/80 shadow-[0_0_12px_rgba(228,228,231,0.6)]',
+            emerald: 'bg-emerald-300/80 shadow-[0_0_12px_rgba(110,231,183,0.6)]',
+            slate: 'bg-zinc-800/90 shadow-[0_0_12px_rgba(24,24,27,0.6)]'
+          } as const;
+          return (
+            <div key={color} className={`wire h-3 rounded-full ${classes[color as keyof typeof classes]} ${cut ? 'wire-cut' : ''} ${hover ? 'wire-hover' : ''}`} />
+          );
+        })}
         <div className="col-span-3 mt-3 flex items-center justify-between rounded-full border border-white/10 bg-black/30 px-3 py-2 text-[10px] uppercase tracking-[0.3em] text-zinc-300">
           <span>{ru.module.scanner}</span>
           <span className="soft-flicker h-2 w-2 rounded-full bg-emerald-300" />
@@ -135,10 +164,12 @@ const ModuleVisual = ({ module }: { module: BombModule }) => {
       color === 'blue'
         ? 'bg-sky-400/80 shadow-[0_0_22px_rgba(56,189,248,0.7)]'
         : 'bg-rose-500/80 shadow-[0_0_22px_rgba(244,63,94,0.7)]';
+    const pressed = lastAction?.action === 'hold-button';
+    const hovered = hoverAction?.action === 'hold-button';
 
     return (
       <div className="flex items-center justify-center">
-        <div className={`pulse-glow flex h-20 w-20 items-center justify-center rounded-full ${buttonClass}`}>
+        <div className={`module-button pulse-glow flex h-20 w-20 items-center justify-center rounded-full ${buttonClass} ${pressed ? 'button-press' : ''} ${hovered ? 'button-hover' : ''}`}>
           <span className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-900">{text}</span>
         </div>
       </div>
@@ -150,11 +181,13 @@ const ModuleVisual = ({ module }: { module: BombModule }) => {
       {['up', 'down', 'up'].map((direction, index) => (
         <div
           key={`${direction}-${index}`}
-          className={`flex h-14 w-10 items-center justify-center rounded-2xl border border-white/10 ${
+          className={`toggle-slot flex h-14 w-10 items-center justify-center rounded-2xl border border-white/10 ${
             direction === 'up' ? 'bg-emerald-400/20' : 'bg-slate-700/40'
+          } ${lastAction?.action === 'tap-toggle' && actionValue === String(index) ? 'toggle-hit' : ''} ${
+            hoverAction?.action === 'tap-toggle' && hoverValue === String(index) ? 'toggle-hover' : ''
           }`}
         >
-          <div className={`h-6 w-2 rounded-full ${direction === 'up' ? 'bg-emerald-300' : 'bg-slate-300'}`} />
+          <div className={`toggle-knob h-6 w-2 rounded-full ${direction === 'up' ? 'bg-emerald-300' : 'bg-slate-300'}`} />
         </div>
       ))}
       <div className="flex h-14 w-10 items-center justify-center rounded-2xl border border-white/10 bg-black/40">
@@ -164,51 +197,76 @@ const ModuleVisual = ({ module }: { module: BombModule }) => {
   );
 };
 
-export const ModuleCard = ({ module, disabled, onAction }: ModuleCardProps) => (
-  <article className="panel panel-module signal-grid flex h-full flex-col gap-5 p-5 shadow-panel">
-    <div className="flex items-start justify-between gap-4">
-      <div>
-        <div className="chip-label">{moduleTypeLabels[module.type] ?? module.type}</div>
-        <h3 className="mt-2 font-display text-2xl font-semibold text-white">{module.label}</h3>
-      </div>
-      <span className={`status-pill ${module.solved ? 'status-ok' : 'status-warn'}`}>
-        {module.solved ? ru.module.status.ready : module.mode === 'sapper' ? ru.module.status.panel : ru.module.status.guide}
-      </span>
-    </div>
+export const ModuleCard = ({ module, disabled, onAction }: ModuleCardProps) => {
+  const [actionPulse, setActionPulse] = useState(0);
+  const [lastAction, setLastAction] = useState<{ action: GameActionInput['action']; value?: string } | null>(null);
+  const [hoverAction, setHoverAction] = useState<{ action: GameActionInput['action']; value?: string } | null>(null);
 
-    {module.mode === 'sapper' ? (
-      <div className="panel panel-inset p-4">
-        <ModuleVisual module={module} />
-      </div>
-    ) : null}
+  useEffect(() => {
+    if (!lastAction) {
+      return;
+    }
+    const timer = window.setTimeout(() => setLastAction(null), 600);
+    return () => window.clearTimeout(timer);
+  }, [lastAction]);
 
-    {module.mode !== 'sapper' ? (
-      <div className="rule-block">
-        <div className="chip-label">{ru.module.guideLabel}</div>
-        <div className="rule-list">
-          {module.lines.map((line) => (
-            <p key={line} className="rule-line">
-              {line}
-            </p>
+  const handleAction = (action: GameActionInput['action'], value?: string) => {
+    setActionPulse((value) => value + 1);
+    setLastAction({ action, value });
+    onAction(module.id, action, value);
+  };
+
+  return (
+    <article className="panel panel-module signal-grid flex h-full flex-col gap-5 p-5 shadow-panel">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <div className="chip-label">{moduleTypeLabels[module.type] ?? module.type}</div>
+          <h3 className="mt-2 font-display text-2xl font-semibold text-white">{module.label}</h3>
+        </div>
+        <span className={`status-pill ${module.solved ? 'status-ok' : 'status-warn'}`}>
+          {module.solved ? ru.module.status.ready : module.mode === 'sapper' ? ru.module.status.panel : ru.module.status.guide}
+        </span>
+      </div>
+
+      {module.mode === 'sapper' ? (
+        <div key={actionPulse} className="panel panel-inset p-4 module-pulse">
+          <ModuleVisual module={module} lastAction={lastAction} hoverAction={hoverAction} />
+        </div>
+      ) : null}
+
+      {module.mode !== 'sapper' ? (
+        <div className="rule-block">
+          <div className="chip-label">{ru.module.guideLabel}</div>
+          <div className="rule-list">
+            {module.lines.map((line) => (
+              <p key={line} className="rule-line">
+                {line}
+              </p>
+            ))}
+          </div>
+        </div>
+      ) : null}
+
+      {module.actions.length > 0 ? (
+        <div className="mt-auto flex flex-wrap gap-3 pt-2">
+          {module.actions.map((action) => (
+            <button
+              key={`${module.id}-${action.action}-${action.value ?? 'plain'}`}
+              type="button"
+              disabled={disabled || module.solved}
+              onClick={() => handleAction(action.action, action.value)}
+              onMouseEnter={() => setHoverAction({ action: action.action, value: action.value })}
+              onMouseLeave={() => setHoverAction(null)}
+              onFocus={() => setHoverAction({ action: action.action, value: action.value })}
+              onBlur={() => setHoverAction(null)}
+              className="btn btn-outline action-button"
+              data-tooltip={action.label}
+            >
+              {action.label}
+            </button>
           ))}
         </div>
-      </div>
-    ) : null}
-
-    {module.actions.length > 0 ? (
-      <div className="mt-auto flex flex-wrap gap-3 pt-2">
-        {module.actions.map((action) => (
-          <button
-            key={`${module.id}-${action.action}-${action.value ?? 'plain'}`}
-            type="button"
-            disabled={disabled || module.solved}
-            onClick={() => onAction(module.id, action.action, action.value)}
-            className="btn btn-outline"
-          >
-            {action.label}
-          </button>
-        ))}
-      </div>
-    ) : null}
-  </article>
-);
+      ) : null}
+    </article>
+  );
+};

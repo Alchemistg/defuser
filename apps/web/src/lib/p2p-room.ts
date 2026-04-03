@@ -48,6 +48,8 @@ let session: SessionMeta | null = null;
 let handlers: Handlers = {};
 let tickHandle: number | null = null;
 let connected = false;
+let reconnectTimer: number | null = null;
+let reconnectAttempts = 0;
 
 const setConnected = (value: boolean) => {
   connected = value;
@@ -167,6 +169,9 @@ const ensureHostPeer = async (roomCode: string) => {
   peer.on('connection', (conn) => {
     attachHostConnection(conn);
   });
+  peer.on('disconnected', () => {
+    peer?.reconnect();
+  });
 
   await waitForPeerOpen(peer);
   return peer;
@@ -178,8 +183,57 @@ const ensureClientPeer = async () => {
   }
 
   peer = new Peer(undefined, peerOptions());
+  peer.on('disconnected', () => {
+    peer?.reconnect();
+  });
   await waitForPeerOpen(peer);
   return peer;
+};
+
+const clearReconnect = () => {
+  if (reconnectTimer) {
+    window.clearTimeout(reconnectTimer);
+    reconnectTimer = null;
+  }
+  reconnectAttempts = 0;
+};
+
+const scheduleReconnect = () => {
+  if (!session || session.isHost) {
+    return;
+  }
+  if (reconnectTimer) {
+    return;
+  }
+  const delay = Math.min(1000 * 2 ** reconnectAttempts, 10000);
+  reconnectAttempts += 1;
+  reconnectTimer = window.setTimeout(() => {
+    reconnectTimer = null;
+    attemptReconnect();
+  }, delay);
+};
+
+const attemptReconnect = async () => {
+  if (!session || session.isHost) {
+    return;
+  }
+  if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+    scheduleReconnect();
+    return;
+  }
+
+  try {
+    const peerInstance = await ensureClientPeer();
+    const conn = peerInstance.connect(session.roomCode, { reliable: true });
+    const result = await new Promise<{ playerId: string; room: RoomState }>((resolve, reject) => {
+      attachClientConnection(conn, resolve, reject, session.name, session.playerId);
+    });
+    session.playerId = result.playerId;
+    persistMeta(session);
+    clearReconnect();
+  } catch {
+    scheduleReconnect();
+  }
 };
 
 const sendToConnection = (conn: DataConnection, message: P2PMessage) => {
@@ -322,6 +376,7 @@ const attachClientConnection = (conn: DataConnection, resolveSession: (value: { 
       window.clearTimeout(timeout);
       resolveSession({ playerId: message.playerId, room: message.room });
       setConnected(true);
+      clearReconnect();
       persistPeerRoom(message.room);
       handlers.onRoomState?.(message.room);
       return;
@@ -330,6 +385,7 @@ const attachClientConnection = (conn: DataConnection, resolveSession: (value: { 
     if (message.type === 'room_state') {
       handlers.onRoomState?.(message.room);
       persistPeerRoom(message.room);
+      clearReconnect();
       return;
     }
 
@@ -351,11 +407,13 @@ const attachClientConnection = (conn: DataConnection, resolveSession: (value: { 
   conn.on('close', () => {
     connections.delete('host');
     setConnected(false);
+    scheduleReconnect();
   });
 
   conn.on('error', () => {
     connections.delete('host');
     setConnected(false);
+    scheduleReconnect();
   });
 };
 
@@ -436,6 +494,7 @@ export const joinRoomSession = async (input: JoinRoomInput) => {
     isHost: false
   };
   persistMeta(session);
+  clearReconnect();
   return {
     playerId: result.playerId,
     room: result.room
@@ -476,6 +535,7 @@ export const fetchRoomState = async (_roomId: string, _playerId: string) => {
 
     session.playerId = result.playerId;
     persistMeta(session);
+    clearReconnect();
     return { room: result.room };
   } catch {
     const cached = loadPeerRoom();
@@ -608,6 +668,7 @@ export const resetP2P = () => {
   persistHostRoom();
   persistPeerRoom(null);
   clearTick();
+  clearReconnect();
 
   if (peer && !peer.destroyed) {
     peer.destroy();

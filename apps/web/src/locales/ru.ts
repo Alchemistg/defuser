@@ -23,6 +23,7 @@
     socketPrefix: 'P2P:',
     socketConnected: 'connected',
     socketWaiting: 'waiting',
+    reconnecting: 'переподключение…',
     roomStates: {
       lobby: 'Сбор команды',
       active: 'Разминирование',
