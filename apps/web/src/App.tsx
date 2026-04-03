@@ -3,7 +3,16 @@ import type { GameActionInput, ModuleType, Role, RoomState } from '@defuser/shar
 import { ModuleCard } from './components/ModuleCard';
 import { PlayerChip } from './components/PlayerChip';
 import { useRoomPeer } from './hooks/useRoomPeer';
-import { createRoomSession, fetchRoomState, joinRoomSession, resetRoomConnection, restartRoomGame, startRoomGame, updateRoomSettings } from './lib/api';
+import {
+  createRoomSession,
+  fetchRoomState,
+  joinRoomSession,
+  kickPlayer,
+  resetRoomConnection,
+  restartRoomGame,
+  startRoomGame,
+  updateRoomSettings
+} from './lib/api';
 import { ru } from './locales/ru';
 import { useRegisterSW } from 'virtual:pwa-register/react';
 
@@ -128,7 +137,21 @@ export default function App() {
     setError(null);
   }, []);
 
+  const resetSessionWithNotice = (notice: string) => {
+    setSession(null);
+    setRoom(null);
+    setError(null);
+    setSettingsDraft(null);
+    setMessage(notice);
+    resetRoomConnection();
+    persistSession(null);
+  };
+
   const handleGameEvent = useCallback((nextMessage: string) => {
+    if (nextMessage === ru.messages.kickedSelf) {
+      resetSessionWithNotice(ru.messages.kickedSelf);
+      return;
+    }
     setMessage(nextMessage);
   }, []);
 
@@ -350,6 +373,41 @@ export default function App() {
     }
   };
 
+  const shareInvite = async () => {
+    if (!inviteLink) {
+      return;
+    }
+
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: ru.app.title,
+          text: ru.room.inviteShareText,
+          url: inviteLink
+        });
+        setMessage(ru.room.inviteShared);
+        return;
+      } catch {
+        // fall back to clipboard
+      }
+    }
+
+    await copyInvite();
+  };
+
+  const handleKickPlayer = async (targetPlayerId: string) => {
+    if (!session || !room) {
+      return;
+    }
+
+    try {
+      kickPlayer(room.id, session.playerId, targetPlayerId);
+      setMessage(ru.room.kickSuccess);
+    } catch (kickError) {
+      setError(kickError instanceof Error ? kickError.message : ru.room.kickFail);
+    }
+  };
+
   const resetSession = () => {
     setSession(null);
     setRoom(null);
@@ -359,6 +417,16 @@ export default function App() {
     resetRoomConnection();
     persistSession(null);
   };
+
+  useEffect(() => {
+    if (!session || !room) {
+      return;
+    }
+    const stillInRoom = room.players.some((player) => player.id === session.playerId);
+    if (!stillInRoom) {
+      resetSessionWithNotice(ru.messages.kickedSelf);
+    }
+  }, [room, session]);
 
   const isActive = room?.status === 'active';
 
@@ -507,14 +575,25 @@ export default function App() {
                 <div className="mt-5 panel panel-inset p-4">
                   <div className="chip-label">{ru.room.inviteLabel}</div>
                   <input readOnly value={inviteLink} className="mt-3 w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-zinc-100 outline-none" />
-                  <button type="button" onClick={copyInvite} className="btn btn-secondary mt-3 w-full">
-                    {ru.room.inviteCopy}
-                  </button>
+                  <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                    <button type="button" onClick={copyInvite} className="btn btn-secondary w-full">
+                      {ru.room.inviteCopy}
+                    </button>
+                    <button type="button" onClick={shareInvite} className="btn btn-outline w-full">
+                      {ru.room.inviteShare}
+                    </button>
+                  </div>
                 </div>
 
                 <div className="mt-6 space-y-3">
                   {room.players.map((player) => (
-                    <PlayerChip key={player.id} player={player} current={player.id === session.playerId} />
+                    <PlayerChip
+                      key={player.id}
+                      player={player}
+                      current={player.id === session.playerId}
+                      canKick={isOwner && room.status === 'lobby' && player.id !== session.playerId}
+                      onKick={handleKickPlayer}
+                    />
                   ))}
                 </div>
               </div>

@@ -24,6 +24,7 @@ type P2PMessage =
   | { type: 'room_state'; room: RoomState }
   | { type: 'game_event'; message: string }
   | { type: 'action'; payload: GameActionInput }
+  | { type: 'kicked'; message: string }
   | { type: 'sync_request'; playerId: string };
 
 type Handlers = {
@@ -341,6 +342,13 @@ const attachClientConnection = (conn: DataConnection, resolveSession: (value: { 
         return;
       }
       handlers.onGameEvent?.(message.message);
+      return;
+    }
+
+    if (message.type === 'kicked') {
+      handlers.onGameEvent?.(message.message);
+      resetP2P();
+      return;
     }
   });
 
@@ -566,6 +574,33 @@ export const sendAction = (payload: GameActionInput) => {
   if (conn) {
     sendToConnection(conn, { type: 'action', payload });
   }
+};
+
+export const kickPlayer = (roomId: string, playerId: string, targetPlayerId: string) => {
+  if (!room || room.id !== roomId || room.ownerId !== playerId) {
+    throw new Error(ru.errors.ownerOnlySettings);
+  }
+  if (room.status !== 'lobby') {
+    throw new Error(ru.errors.settingsLobbyOnly);
+  }
+  if (targetPlayerId === playerId) {
+    return;
+  }
+
+  const target = room.players.find((player) => player.id === targetPlayerId);
+  if (!target) {
+    return;
+  }
+
+  room.players = room.players.filter((player) => player.id !== targetPlayerId);
+  const conn = connections.get(targetPlayerId);
+  if (conn) {
+    sendToConnection(conn, { type: 'kicked', message: ru.messages.kickedSelf });
+    conn.close();
+    connections.delete(targetPlayerId);
+  }
+
+  broadcastRoomState(ru.messages.playerKicked(target.name));
 };
 
 export const resetP2P = () => {

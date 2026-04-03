@@ -56,6 +56,12 @@
     label: 'КОМНАТА',
     inviteLabel: 'ССЫЛКА-ПРИГЛАШЕНИЕ',
     inviteCopy: 'Скопировать ссылку',
+    inviteShare: 'Поделиться ссылкой',
+    inviteShareText: 'Присоединяйся к комнате Defuser по ссылке.',
+    inviteShared: 'Ссылка отправлена.',
+    kick: 'Кикнуть',
+    kickSuccess: 'Игрок исключен из лобби.',
+    kickFail: 'Не удалось исключить игрока.',
     leave: 'Выйти'
   },
   role: {
@@ -129,12 +135,14 @@
     settingsUpdated: 'Настройки комнаты обновлены.',
     playerBackOnline: (name: string) => `${name} снова на связи.`,
     playerDisconnected: (name: string) => `${name} отключился.`,
+    playerKicked: (name: string) => `${name} исключен из лобби.`,
     timeExpired: 'Время вышло. Бомба взорвалась.',
     moduleAlreadyDefused: 'Этот модуль уже обезврежен.',
     moduleDefused: (label: string) => `Модуль ${label} обезврежен.`,
     moduleDefusedBombSaved: (label: string) => `Модуль ${label} обезврежен. Бомба спасена.`,
     criticalError: 'Критическая ошибка. Бомба взорвалась.',
     remainingAttempts: (count: number) => `Ошибка. Осталось попыток: ${count}.`,
+    kickedSelf: 'Вас исключили из комнаты.'
   },
   errors: {
     roomLoad: 'Не удалось загрузить комнату',

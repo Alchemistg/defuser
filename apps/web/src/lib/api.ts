@@ -3,6 +3,7 @@ import {
   createRoomSession as createRoomSessionP2P,
   fetchRoomState as fetchRoomStateP2P,
   joinRoomSession as joinRoomSessionP2P,
+  kickPlayer as kickPlayerP2P,
   resetP2P,
   restartRoomGame as restartRoomGameP2P,
   startRoomGame as startRoomGameP2P,
@@ -28,3 +29,6 @@ export const fetchRoomState = (roomId: string, playerId: string) =>
   fetchRoomStateP2P(roomId, playerId) as Promise<{ room: SessionResponse['room'] }>;
 
 export const resetRoomConnection = () => resetP2P();
+
+export const kickPlayer = (roomId: string, playerId: string, targetPlayerId: string) =>
+  kickPlayerP2P(roomId, playerId, targetPlayerId);
