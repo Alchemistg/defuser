@@ -60,7 +60,7 @@ const resolveBootstrap = () => {
   const storedName = localStorage.getItem(nameKey) ?? '';
 
   return {
-    defaultName: stored?.name ?? storedName || randomName(),
+    defaultName: stored?.name ?? (storedName || randomName()),
     defaultCode: url.searchParams.get('roomCode')?.toUpperCase() ?? stored?.roomCode ?? '',
     session: stored
   };
