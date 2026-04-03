@@ -58,14 +58,30 @@ const parseButtonMeta = (lines: string[], label: string) => {
   return { color, text };
 };
 
+const parseTogglePositions = (lines: string[]) => {
+  const line = lines.find((item) => item.toLowerCase().includes('положение')) ?? '';
+  if (!line) {
+    return [true, false, true];
+  }
+  const parts = line.split(':')[1]?.split(',').map((part) => part.trim().toLowerCase()) ?? [];
+  if (parts.length < 3) {
+    return [true, false, true];
+  }
+  return parts.slice(0, 3).map((part) => part.includes('вверх'));
+};
+
 const ModuleVisual = ({
   module,
   lastAction,
-  hoverAction
+  hoverAction,
+  togglePositions,
+  holdProgress
 }: {
   module: BombModule;
   lastAction: { action: GameActionInput['action']; value?: string } | null;
   hoverAction: { action: GameActionInput['action']; value?: string } | null;
+  togglePositions: boolean[];
+  holdProgress: number;
 }) => {
   const type = module.type;
   const actionValue = lastAction?.value;
@@ -171,6 +187,9 @@ const ModuleVisual = ({
       <div className="flex items-center justify-center">
         <div className={`module-button pulse-glow flex h-20 w-20 items-center justify-center rounded-full ${buttonClass} ${pressed ? 'button-press' : ''} ${hovered ? 'button-hover' : ''}`}>
           <span className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-900">{text}</span>
+          <div className={`hold-timer ${holdProgress > 0 ? 'is-active' : ''}`}>
+            <div className="hold-fill" style={{ transform: `scaleY(${holdProgress})` }} />
+          </div>
         </div>
       </div>
     );
@@ -178,16 +197,16 @@ const ModuleVisual = ({
 
   return (
     <div className="flex items-center justify-between gap-3">
-      {['up', 'down', 'up'].map((direction, index) => (
+      {togglePositions.map((isUp, index) => (
         <div
-          key={`${direction}-${index}`}
+          key={`toggle-${index}`}
           className={`toggle-slot flex h-14 w-10 items-center justify-center rounded-2xl border border-white/10 ${
-            direction === 'up' ? 'bg-emerald-400/20' : 'bg-slate-700/40'
+            isUp ? 'bg-emerald-400/20' : 'bg-slate-700/40'
           } ${lastAction?.action === 'tap-toggle' && actionValue === String(index) ? 'toggle-hit' : ''} ${
             hoverAction?.action === 'tap-toggle' && hoverValue === String(index) ? 'toggle-hover' : ''
           }`}
         >
-          <div className={`toggle-knob h-6 w-2 rounded-full ${direction === 'up' ? 'bg-emerald-300' : 'bg-slate-300'}`} />
+          <div className={`toggle-knob ${isUp ? 'is-up' : 'is-down'} h-6 w-2 rounded-full ${isUp ? 'bg-emerald-300' : 'bg-slate-300'}`} />
         </div>
       ))}
       <div className="flex h-14 w-10 items-center justify-center rounded-2xl border border-white/10 bg-black/40">
@@ -201,6 +220,10 @@ export const ModuleCard = ({ module, disabled, onAction }: ModuleCardProps) => {
   const [actionPulse, setActionPulse] = useState(0);
   const [lastAction, setLastAction] = useState<{ action: GameActionInput['action']; value?: string } | null>(null);
   const [hoverAction, setHoverAction] = useState<{ action: GameActionInput['action']; value?: string } | null>(null);
+  const [processing, setProcessing] = useState(false);
+  const [togglePositions, setTogglePositions] = useState<boolean[]>(() => parseTogglePositions(module.lines));
+  const [holdProgress, setHoldProgress] = useState(0);
+  const [holdStart, setHoldStart] = useState<number | null>(null);
 
   useEffect(() => {
     if (!lastAction) {
@@ -210,9 +233,48 @@ export const ModuleCard = ({ module, disabled, onAction }: ModuleCardProps) => {
     return () => window.clearTimeout(timer);
   }, [lastAction]);
 
+  useEffect(() => {
+    setTogglePositions(parseTogglePositions(module.lines));
+  }, [module.lines]);
+
+  useEffect(() => {
+    if (holdStart === null) {
+      return;
+    }
+    let frame = 0;
+    const tick = () => {
+      const elapsed = Date.now() - holdStart;
+      const progress = Math.max(0, 1 - elapsed / 2000);
+      setHoldProgress(progress);
+      if (elapsed < 2000) {
+        frame = window.requestAnimationFrame(tick);
+      } else {
+        setHoldStart(null);
+      }
+    };
+    frame = window.requestAnimationFrame(tick);
+    return () => window.cancelAnimationFrame(frame);
+  }, [holdStart]);
+
   const handleAction = (action: GameActionInput['action'], value?: string) => {
     setActionPulse((value) => value + 1);
     setLastAction({ action, value });
+    setProcessing(true);
+    window.setTimeout(() => setProcessing(false), 400);
+    if (action === 'tap-toggle' && value !== undefined) {
+      setTogglePositions((prev) => {
+        const index = Number(value);
+        if (Number.isNaN(index) || index < 0 || index >= prev.length) {
+          return prev;
+        }
+        const copy = [...prev];
+        copy[index] = !copy[index];
+        return copy;
+      });
+    }
+    if (action === 'hold-button') {
+      setHoldStart(Date.now());
+    }
     onAction(module.id, action, value);
   };
 
@@ -229,8 +291,15 @@ export const ModuleCard = ({ module, disabled, onAction }: ModuleCardProps) => {
       </div>
 
       {module.mode === 'sapper' ? (
-        <div key={actionPulse} className="panel panel-inset p-4 module-pulse">
-          <ModuleVisual module={module} lastAction={lastAction} hoverAction={hoverAction} />
+        <div key={actionPulse} className={`panel panel-inset p-4 module-pulse ${processing ? 'is-processing' : ''}`}>
+          <ModuleVisual
+            module={module}
+            lastAction={lastAction}
+            hoverAction={hoverAction}
+            togglePositions={togglePositions}
+            holdProgress={holdProgress}
+          />
+          {processing ? <div className="module-processing">{ru.module.processing}</div> : null}
         </div>
       ) : null}
 

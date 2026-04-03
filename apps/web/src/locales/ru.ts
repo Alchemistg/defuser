@@ -182,6 +182,7 @@
     },
     guideLabel: 'ИНСТРУКЦИЯ',
     scanner: 'Сканер',
+    processing: 'обрабатываем…',
     templates: {
       wires: [
         {
