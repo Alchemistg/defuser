@@ -255,6 +255,14 @@ const broadcastRoomState = (eventMessage?: string) => {
     return;
   }
 
+  // Normalize presence based on live connections (host is always online)
+  room.players = room.players.map((player) => {
+    if (player.id === session?.playerId) {
+      return { ...player, connected: true };
+    }
+    return { ...player, connected: connections.has(player.id) };
+  });
+
   const hostMasked = maskRoomForPlayer(room, session.playerId);
   handlers.onRoomState?.(hostMasked);
   if (eventMessage) {
