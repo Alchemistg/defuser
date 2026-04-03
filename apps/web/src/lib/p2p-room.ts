@@ -24,7 +24,6 @@ type P2PMessage =
   | { type: 'room_state'; room: RoomState }
   | { type: 'game_event'; message: string }
   | { type: 'action'; payload: GameActionInput }
-  | { type: 'kicked'; message: string }
   | { type: 'sync_request'; playerId: string };
 
 type Handlers = {
@@ -342,12 +341,9 @@ const attachClientConnection = (conn: DataConnection, resolveSession: (value: { 
         return;
       }
       handlers.onGameEvent?.(message.message);
-      return;
-    }
-
-    if (message.type === 'kicked') {
-      handlers.onGameEvent?.(message.message);
-      resetP2P();
+      if (message.message === ru.messages.kickedSelf) {
+        resetP2P();
+      }
       return;
     }
   });
@@ -595,7 +591,7 @@ export const kickPlayer = (roomId: string, playerId: string, targetPlayerId: str
   room.players = room.players.filter((player) => player.id !== targetPlayerId);
   const conn = connections.get(targetPlayerId);
   if (conn) {
-    sendToConnection(conn, { type: 'kicked', message: ru.messages.kickedSelf });
+    sendToConnection(conn, { type: 'game_event', message: ru.messages.kickedSelf });
     conn.close();
     connections.delete(targetPlayerId);
   }
