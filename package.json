@@ -1,0 +1,17 @@
+﻿{
+  "name": "defuser-mvp",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "node scripts/dev.mjs",
+    "dev:web": "npm run dev --workspace @defuser/web",
+    "dev:server": "npm run dev --workspace @defuser/server",
+    "start:server": "npm run start --workspace @defuser/server",
+    "build": "npm run build --workspaces",
+    "check": "npm run check --workspaces"
+  }
+}

@@ -1,0 +1,7 @@
+node_modules/
+dist/
+.env
+apps/server/data/
+apps/web/dev-dist/
+apps/server/storage/*.sqlite
+apps/server/apps/server/storage/*.sqlite

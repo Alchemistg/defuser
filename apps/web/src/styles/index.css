@@ -1,0 +1,326 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color: #f4f4f5;
+  background:
+    radial-gradient(circle at top left, rgba(239, 68, 68, 0.2), transparent 32%),
+    radial-gradient(circle at top right, rgba(245, 158, 11, 0.2), transparent 30%),
+    radial-gradient(circle at 20% 60%, rgba(14, 116, 144, 0.22), transparent 45%),
+    linear-gradient(180deg, #05060a 0%, #111827 100%);
+  font-family: 'IBM Plex Sans', 'Segoe UI', sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: transparent;
+}
+
+button,
+input,
+select {
+  font: inherit;
+}
+
+.app-shell {
+  position: relative;
+  isolation: isolate;
+}
+
+.app-atmosphere {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  opacity: 0.6;
+  background-image:
+    repeating-linear-gradient(130deg, rgba(255, 255, 255, 0.05) 0 1px, transparent 1px 8px),
+    radial-gradient(circle at 15% 20%, rgba(251, 146, 60, 0.12), transparent 40%),
+    radial-gradient(circle at 80% 10%, rgba(56, 189, 248, 0.12), transparent 42%),
+    radial-gradient(circle at 40% 85%, rgba(20, 184, 166, 0.12), transparent 45%);
+  pointer-events: none;
+}
+
+.panel {
+  @apply rounded-3xl border border-white/10 bg-white/5 backdrop-blur;
+}
+
+.panel-hero {
+  background: linear-gradient(135deg, rgba(15, 23, 42, 0.75), rgba(9, 9, 11, 0.8));
+  border-color: rgba(248, 113, 113, 0.25);
+}
+
+.panel-muted {
+  background: linear-gradient(150deg, rgba(15, 23, 42, 0.55), rgba(8, 15, 25, 0.75));
+}
+
+.panel-cta {
+  background: linear-gradient(130deg, rgba(15, 23, 42, 0.75), rgba(30, 41, 59, 0.85));
+  border-color: rgba(245, 158, 11, 0.35);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.35);
+}
+
+.panel-inset {
+  @apply rounded-2xl border border-white/10 bg-black/30;
+}
+
+.panel-alert {
+  border-color: rgba(248, 113, 113, 0.45);
+  background: rgba(190, 24, 93, 0.14);
+}
+
+.panel-scan {
+  position: relative;
+  overflow: hidden;
+}
+
+.panel-scan::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(120deg, transparent, rgba(255, 255, 255, 0.08), transparent);
+  transform: translateX(-100%);
+  animation: scanLine 6s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.panel-module {
+  border-color: rgba(94, 234, 212, 0.2);
+}
+
+.panel-role {
+  border-color: rgba(56, 189, 248, 0.35);
+  background: linear-gradient(150deg, rgba(2, 132, 199, 0.1), rgba(15, 23, 42, 0.8));
+}
+
+.signal-grid {
+  background-image:
+    linear-gradient(rgba(255,255,255,0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.06) 1px, transparent 1px);
+  background-size: 18px 18px;
+}
+
+.chip-label {
+  @apply text-xs uppercase tracking-[0.3em] text-zinc-300;
+}
+
+.status-pill {
+  @apply rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.25em];
+}
+
+.status-ok {
+  @apply bg-emerald-500/20 text-emerald-200;
+}
+
+.status-warn {
+  @apply bg-amber-500/20 text-amber-200;
+}
+
+.status-wait {
+  @apply bg-zinc-800 text-zinc-400;
+}
+
+.btn {
+  @apply rounded-2xl px-4 py-3 text-sm font-semibold transition;
+}
+
+.btn-primary {
+  @apply bg-amber-400 text-zinc-950 shadow-[0_0_18px_rgba(251,191,36,0.45)] hover:bg-amber-300 disabled:cursor-not-allowed disabled:opacity-50;
+}
+
+.btn-secondary {
+  @apply bg-sky-400 text-slate-950 hover:bg-sky-300 disabled:cursor-not-allowed disabled:opacity-50;
+}
+
+.btn-outline {
+  @apply border border-white/20 bg-white/10 text-white hover:bg-white/15 disabled:cursor-not-allowed disabled:opacity-50;
+}
+
+.rule-block {
+  @apply rounded-2xl border border-white/10 bg-white/5 p-4;
+}
+
+.rule-list {
+  counter-reset: rule;
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.rule-line {
+  position: relative;
+  padding-left: 32px;
+  line-height: 1.6;
+  color: #e4e4e7;
+}
+
+.rule-line::before {
+  counter-increment: rule;
+  content: counter(rule, decimal-leading-zero);
+  position: absolute;
+  left: 0;
+  top: 0;
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  color: rgba(148, 163, 184, 0.8);
+}
+
+.hud-timer {
+  position: fixed;
+  top: 18px;
+  right: 24px;
+  z-index: 40;
+  padding: 12px 16px;
+  border-radius: 18px;
+  border: 1px solid rgba(244, 63, 94, 0.45);
+  background: rgba(15, 23, 42, 0.85);
+  box-shadow: 0 12px 35px rgba(15, 23, 42, 0.5);
+  backdrop-filter: blur(10px);
+}
+
+.hud-timer.is-dimmed {
+  opacity: 0.6;
+}
+
+.hud-label {
+  font-size: 10px;
+  letter-spacing: 0.3em;
+  color: rgba(248, 113, 113, 0.85);
+}
+
+.hud-value {
+  font-size: 26px;
+  font-weight: 700;
+  color: #fee2e2;
+}
+
+.hud-meta {
+  margin-top: 6px;
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: rgba(253, 186, 116, 0.9);
+}
+
+.strike-flash {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  pointer-events: none;
+  animation: strikeFlash 0.6s ease-out;
+}
+
+.strike-flash::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 30% 20%, rgba(244, 63, 94, 0.45), transparent 45%),
+    radial-gradient(circle at 70% 40%, rgba(251, 113, 133, 0.35), transparent 55%),
+    radial-gradient(circle at 50% 80%, rgba(190, 24, 93, 0.35), transparent 60%);
+}
+
+.lamp-glow {
+  background: #fcd34d;
+  box-shadow: 0 0 16px rgba(252, 211, 77, 0.9);
+  animation: lampPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes scanLine {
+  0% {
+    transform: translateX(-100%);
+  }
+  60% {
+    transform: translateX(100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes pulseGlow {
+  0% {
+    box-shadow: 0 0 0 rgba(248, 113, 113, 0.35), 0 0 18px rgba(248, 113, 113, 0.45);
+    transform: scale(1);
+  }
+  60% {
+    box-shadow: 0 0 0 rgba(248, 113, 113, 0.2), 0 0 28px rgba(248, 113, 113, 0.7);
+    transform: scale(1.04);
+  }
+  100% {
+    box-shadow: 0 0 0 rgba(248, 113, 113, 0.35), 0 0 18px rgba(248, 113, 113, 0.45);
+    transform: scale(1);
+  }
+}
+
+@keyframes softFlicker {
+  0% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 0.9;
+  }
+  100% {
+    opacity: 0.45;
+  }
+}
+
+@keyframes lampPulse {
+  0% {
+    transform: scale(0.95);
+  }
+  50% {
+    transform: scale(1.08);
+  }
+  100% {
+    transform: scale(0.95);
+  }
+}
+
+@keyframes strikeFlash {
+  0% {
+    opacity: 0;
+  }
+  15% {
+    opacity: 1;
+  }
+  45% {
+    opacity: 0.35;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+.pulse-glow {
+  animation: pulseGlow 1.8s ease-in-out infinite;
+}
+
+.soft-flicker {
+  animation: softFlicker 1.4s ease-in-out infinite;
+}
+
+.app-shell.is-idle .pulse-glow,
+.app-shell.is-idle .soft-flicker,
+.app-shell.is-idle .lamp-glow {
+  animation: none;
+  box-shadow: none;
+}
+
+@media (max-width: 640px) {
+  .hud-timer {
+    top: auto;
+    bottom: 16px;
+    right: 16px;
+    left: 16px;
+  }
+
+  .hud-value {
+    text-align: center;
+  }
+}
