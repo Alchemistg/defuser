@@ -211,8 +211,9 @@ select {
   position: fixed;
   inset: 0;
   z-index: 30;
+  opacity: 0;
   pointer-events: none;
-  animation: strikeFlash 0.6s ease-out;
+  animation: strikeFlash 0.6s ease-out forwards;
 }
 
 .strike-flash::before {

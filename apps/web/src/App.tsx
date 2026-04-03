@@ -147,6 +147,7 @@ export default function App() {
     const strikes = room?.bomb?.strikes;
     if (strikes === undefined) {
       prevStrikesRef.current = null;
+      setStrikeFlashTick(0);
       return;
     }
 
@@ -157,6 +158,12 @@ export default function App() {
 
     prevStrikesRef.current = strikes;
   }, [room?.bomb?.strikes]);
+
+  useEffect(() => {
+    if (room?.status !== 'active') {
+      setStrikeFlashTick(0);
+    }
+  }, [room?.status]);
 
   useEffect(() => {
     if (!session) {
