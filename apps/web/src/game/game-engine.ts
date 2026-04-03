@@ -59,8 +59,12 @@ const shuffle = <T>(items: T[]): T[] => {
 };
 
 const createSymbolsModule = (): InternalBombModule => {
-  const symbols = uniqueSample(['О©', 'Ψ', 'Ж', '★', '◇', '✓', '∑', '¶'], 4);
-  const starIndex = symbols.findIndex((symbol) => symbol === '★');
+  const starSymbol = '\u2605';
+  const symbols = uniqueSample(
+    ['\u03A9', '\u03A8', '\u0416', starSymbol, '\u25C6', '\u2713', '\u2211', '\u00B6'],
+    4
+  );
+  const starIndex = symbols.findIndex((symbol) => symbol === starSymbol);
   const solutionIndex = starIndex >= 0 ? starIndex : 1;
   const text = ru.module.text.symbols;
 

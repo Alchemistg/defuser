@@ -59,15 +59,20 @@ const parseButtonMeta = (lines: string[], label: string) => {
 };
 
 const parseTogglePositions = (lines: string[]) => {
-  const line = lines.find((item) => item.toLowerCase().includes('положение')) ?? '';
+  const prefix = ru.module.parsing.togglesPositionPrefix.toLowerCase();
+  const upWord = ru.module.parsing.togglesUpWord.toLowerCase();
+  const line = lines.find((item) => item.toLowerCase().includes(prefix)) ?? '';
   if (!line) {
     return [true, false, true];
   }
-  const parts = line.split(':')[1]?.split(',').map((part) => part.trim().toLowerCase()) ?? [];
+  const parts = line
+    .split(':')[1]
+    ?.split(',')
+    .map((part) => part.trim().toLowerCase()) ?? [];
   if (parts.length < 3) {
     return [true, false, true];
   }
-  return parts.slice(0, 3).map((part) => part.includes('вверх'));
+  return parts.slice(0, 3).map((part) => part.includes(upWord));
 };
 
 const ModuleVisual = ({
@@ -149,9 +154,11 @@ const ModuleVisual = ({
   }
 
   if (type === 'wires') {
+    const wireCount = module.actions.length > 0 ? module.actions.length : 3;
+    const colors = ['rose', 'sky', 'amber', 'zinc', 'emerald', 'slate'].slice(0, wireCount);
     return (
       <div className="grid grid-cols-3 gap-2">
-        {['rose', 'sky', 'amber', 'zinc', 'emerald', 'slate'].map((color, index) => {
+        {colors.map((color, index) => {
           const cut = lastAction?.action === 'cut-wire' && actionValue === String(index);
           const hover = hoverAction?.action === 'cut-wire' && hoverValue === String(index);
           const classes = {
@@ -163,7 +170,10 @@ const ModuleVisual = ({
             slate: 'bg-zinc-800/90 shadow-[0_0_12px_rgba(24,24,27,0.6)]'
           } as const;
           return (
-            <div key={color} className={`wire h-3 rounded-full ${classes[color as keyof typeof classes]} ${cut ? 'wire-cut' : ''} ${hover ? 'wire-hover' : ''}`} />
+            <div
+              key={`${color}-${index}`}
+              className={`wire h-3 rounded-full ${classes[color as keyof typeof classes]} ${cut ? 'wire-cut' : ''} ${hover ? 'wire-hover' : ''}`}
+            />
           );
         })}
         <div className="col-span-3 mt-3 flex items-center justify-between rounded-full border border-white/10 bg-black/30 px-3 py-2 text-[10px] uppercase tracking-[0.3em] text-zinc-300">
@@ -339,3 +349,5 @@ export const ModuleCard = ({ module, disabled, onAction }: ModuleCardProps) => {
     </article>
   );
 };
+
+

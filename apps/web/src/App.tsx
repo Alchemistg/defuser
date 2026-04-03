@@ -164,15 +164,16 @@ export default function App() {
     persistSession(null);
   };
 
-  const handleGameEvent = useCallback((nextMessage: string) => {
+    const handleGameEvent = useCallback((nextMessage: string) => {
     if (nextMessage === ru.messages.kickedSelf) {
       resetSessionWithNotice(ru.messages.kickedSelf);
       return;
     }
-    if (nextMessage.includes('обезврежен') || nextMessage.includes('спасена')) {
+    const lower = nextMessage.toLowerCase();
+    if (lower.includes('\u043E\u0431\u0435\u0437\u0432\u0440\u0435\u0436\u0435\u043D') || lower.includes('\u0441\u043F\u0430\u0441\u0435\u043D\u0430')) {
       playSuccess();
     }
-    if (nextMessage.startsWith('Ошибка') || nextMessage.includes('Критическая')) {
+    if (lower.startsWith('\u043E\u0448\u0438\u0431\u043A\u0430') || lower.includes('\u043A\u0440\u0438\u0442\u0438\u0447\u0435\u0441\u043A\u0430\u044F')) {
       playError();
     }
     setMessage(nextMessage);
@@ -854,3 +855,5 @@ export default function App() {
     </main>
   );
 }
+
+
